@@ -6,6 +6,7 @@ export const addTask = data => ({
         title: data.title,
         id: data.id,
         body: data.body,
+        endDate: data.endDate,
     }
 });
 
@@ -40,5 +41,6 @@ export const updateTask = data => ({
         id: data.id,
         title: data.title,
         body: data.body,
+        endDate: data.endDate,
     }
 })

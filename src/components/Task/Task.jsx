@@ -1,15 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import {Button, IconButton} from "@mui/material";
+import {Button, IconButton, TextField} from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import UpdateIcon from '@mui/icons-material/Update';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckIcon from '@mui/icons-material/Check';
 import { useDispatch, useSelector } from "react-redux";
-import {removeTask, approveTask, updateTask, selectTaskId} from "../../store/actions/taskList";
-
+import { removeTask, approveTask, updateTask, selectTaskId } from "../../store/actions/taskList";
+import { format, differenceInCalendarDays } from 'date-fns'
 import MyInput from "../UI/input/MyInput";
 import MyModal from "../Modal/MyModal";
 import MyButton from "../UI/button/MyButton";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+
+
+
 
 const Task = ({ number, postLeftCol }) => {
     const tasks = useSelector(state => state.taskList.tasks);
@@ -19,6 +25,7 @@ const Task = ({ number, postLeftCol }) => {
     const [modal, setModal] = useState(false);
     const [inputTitle, setInputTitle] = useState( updatedTask?.title || '');
     const [body, setBody] = useState(updatedTask?.body || ['']);
+    const [selectedDate, setSelectedDate] = useState(null);
 
     useEffect(() => {
         if (modal && postLeftCol.id === updatedTaskId && inputTitle !== updatedTask.title && body !== updatedTask.body) {
@@ -40,20 +47,20 @@ const Task = ({ number, postLeftCol }) => {
         setModal(true);
     }
 
-
-
     const addNewTask = (e) => {
         e.preventDefault()
         const newTask = {
             title: inputTitle,
             body,
             id: updatedTaskId,
+            endDate: selectedDate
         }
 
         dispatch(updateTask(newTask));
         dispatch(selectTaskId(''));
         setInputTitle('')
         setBody([''])
+        setSelectedDate(null)
         setModal(false)
     }
 
@@ -71,9 +78,21 @@ const Task = ({ number, postLeftCol }) => {
         setBody(body.filter((el, index) => index !== currentIndex));
     }
 
+    const handleChangeDate = (value) => {
+        setSelectedDate(value);
+    }
+
+    const timeFinished = differenceInCalendarDays(new Date(postLeftCol.endDate), new Date()) > 0;
+
+    const EndDateField = () => {
+        if (!postLeftCol.endDate) return null;
+        return <div className={timeFinished ? '' : 'timeEnd'}>{format(new Date(postLeftCol.endDate), 'dd.MM.yyyy')}</div>
+    }
+
+    const className = timeFinished || !postLeftCol.endDate ? 'postLeftColumn' : 'postLeftColumn timeFinished';
 
     return (
-        <div className="postLeftColumn">
+        <div className={className}>
             <div className="postLeftColumn__content">
                 <strong>{number} {postLeftCol.title}</strong>
                 <ul>
@@ -83,6 +102,7 @@ const Task = ({ number, postLeftCol }) => {
                 </ul>
             </div>
             <div className="postLeftColumn__btns">
+                <EndDateField />
                 <IconButton onClick={handleRemove} color="secondary" aria-label="add an alarm">
                     <DeleteIcon color="error">Delete task</DeleteIcon>
                 </IconButton>
@@ -95,38 +115,44 @@ const Task = ({ number, postLeftCol }) => {
                     <CheckIcon color='success'>Complete task</CheckIcon>
                 </IconButton>
 
-                
-
-
-
-
                 <MyModal visible={modal && (postLeftCol.id === updatedTaskId)} setVisible={setModal}>
-                    <form>
-                        <MyInput
-                            value={inputTitle}
-                            onChange={e => setInputTitle(e.target.value)}
-                            type="text"
-                            placeholder='Update Task title'
-                        />
+                    <form className="form">
+                        <div className="form__body">
+                            <MyInput
+                                value={inputTitle}
+                                onChange={e => setInputTitle(e.target.value)}
+                                type="text"
+                                placeholder='Update Task title'
+                            />
 
-                        {body?.map((el, index) => (
-                            <div key={index}>
-                                <MyInput
-                                    value={el}
-                                    onChange={(e) => handleChangeTaskBody(e,index)}
-                                    type="text"
-                                    placeholder="Task description"
+                            {body?.map((el, index) => (
+                                <div key={index}>
+                                    <MyInput
+                                        value={el}
+                                        onChange={(e) => handleChangeTaskBody(e,index)}
+                                        type="text"
+                                        placeholder="Task description"
+                                    />
+                                    <IconButton onClick={handleRemoveTaskBodyField(index)} color="secondary" aria-label="add an alarm">
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </div>
+                            ))}
+
+                            <IconButton onClick={handleAddNewTaskBodyField} color="secondary" aria-label="add an alarm">
+                                <AddIcon></AddIcon>
+                            </IconButton>
+
+                            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                <DesktopDatePicker
+                                    label="Update Deadline"
+                                    inputFormat="MM/DD/YYYY"
+                                    value={selectedDate}
+                                    onChange={handleChangeDate}
+                                    renderInput={(params) => <TextField {...params} />}
                                 />
-                                <IconButton onClick={handleRemoveTaskBodyField(index)} color="secondary" aria-label="add an alarm">
-                                    <DeleteIcon></DeleteIcon>
-                                </IconButton>
-                            </div>
-                        ))}
-
-                        <IconButton onClick={handleAddNewTaskBodyField} color="secondary" aria-label="add an alarm">
-                            <AddIcon></AddIcon>
-                        </IconButton>
-
+                            </LocalizationProvider>
+                        </div>
                         <MyButton type="submit" onClick={addNewTask}>Update Task</MyButton>
                     </form>
                 </MyModal>
